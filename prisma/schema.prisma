@@ -1,0 +1,303 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== USER & AUTH ====================
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  emailVerified     DateTime?
+  name              String
+  password          String?   // Null for OAuth users
+  image             String?
+  bio               String?
+  denomination      String?
+  spiritualInterests String?  // JSON string for SQLite
+
+  // Location
+  latitude          Float?
+  longitude         Float?
+  city              String?
+  state             String?
+  country           String?
+  locationSharing   Boolean   @default(true)
+  locationUpdatedAt DateTime?
+
+  // Settings
+  isOnline          Boolean   @default(false)
+  lastSeen          DateTime  @default(now())
+  notificationsEnabled Boolean @default(true)
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  accounts          Account[]
+  sessions          Session[]
+  sentConnections   Connection[] @relation("ConnectionSender")
+  receivedConnections Connection[] @relation("ConnectionReceiver")
+  groupMemberships  GroupMember[]
+  ownedGroups       Group[]      @relation("GroupOwner")
+  conversations     ConversationParticipant[]
+  messages          Message[]
+  prayerRequests    PrayerRequest[]
+  prayerResponses   PrayerResponse[]
+  organizedEvents   Event[]      @relation("EventOrganizer")
+  eventAttendees    EventAttendee[]
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ==================== CONNECTIONS ====================
+
+model Connection {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  status     String   @default("PENDING") // PENDING, ACCEPTED, REJECTED, BLOCKED
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  sender   User @relation("ConnectionSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("ConnectionReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+}
+
+// ==================== GROUPS ====================
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  image       String?
+  type        String   @default("OTHER") // CHURCH, BIBLE_STUDY, PRAYER_CIRCLE, FELLOWSHIP, OTHER
+  isPrivate   Boolean  @default(false)
+
+  // Location
+  latitude    Float?
+  longitude   Float?
+  city        String?
+  state       String?
+  country     String?
+
+  ownerId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner       User          @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     GroupMember[]
+  conversation Conversation?
+  events      Event[]
+  prayerRequests PrayerRequest[]
+}
+
+model GroupMember {
+  id        String   @id @default(cuid())
+  userId    String
+  groupId   String
+  role      String   @default("MEMBER") // OWNER, ADMIN, MODERATOR, MEMBER
+  joinedAt  DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+}
+
+// ==================== CONVERSATIONS & MESSAGES ====================
+
+model Conversation {
+  id        String   @id @default(cuid())
+  type      String   @default("DIRECT") // DIRECT, GROUP
+  groupId   String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  group        Group?                    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  id             String   @id @default(cuid())
+  userId         String
+  conversationId String
+  lastReadAt     DateTime @default(now())
+  joinedAt       DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, conversationId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  content        String
+  conversationId String
+  senderId       String
+  replyToId      String?
+  isEdited       Boolean  @default(false)
+  isDeleted      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  replyTo      Message?     @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies      Message[]    @relation("MessageReplies")
+}
+
+// ==================== PRAYER REQUESTS ====================
+
+model PrayerRequest {
+  id          String    @id @default(cuid())
+  title       String
+  content     String
+  category    String    @default("OTHER") // HEALTH, FAMILY, WORK, SPIRITUAL, RELATIONSHIPS, FINANCIAL, OTHER
+  isAnonymous Boolean   @default(false)
+  isPrivate   Boolean   @default(false)
+  isAnswered  Boolean   @default(false)
+  answeredAt  DateTime?
+
+  userId      String
+  groupId     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group     Group?           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  responses PrayerResponse[]
+}
+
+model PrayerResponse {
+  id              String   @id @default(cuid())
+  userId          String
+  prayerRequestId String
+  message         String?
+  createdAt       DateTime @default(now())
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prayerRequest PrayerRequest @relation(fields: [prayerRequestId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, prayerRequestId])
+}
+
+// ==================== EVENTS ====================
+
+model Event {
+  id           String    @id @default(cuid())
+  title        String
+  description  String?
+  image        String?
+  startDate    DateTime
+  endDate      DateTime?
+
+  // Location
+  isOnline     Boolean   @default(false)
+  meetingUrl   String?
+  latitude     Float?
+  longitude    Float?
+  address      String?
+  city         String?
+  state        String?
+
+  maxAttendees Int?
+
+  organizerId  String
+  groupId      String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  organizer User            @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  group     Group?          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  attendees EventAttendee[]
+}
+
+model EventAttendee {
+  id        String   @id @default(cuid())
+  userId    String
+  eventId   String
+  status    String   @default("GOING") // GOING, MAYBE, NOT_GOING
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+}
+
+// ==================== NOTIFICATIONS ====================
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // CONNECTION_REQUEST, CONNECTION_ACCEPTED, NEW_MESSAGE, etc.
+  title     String
+  body      String
+  link      String?
+  isRead    Boolean  @default(false)
+  data      String?  // JSON string for SQLite
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ==================== PUSH SUBSCRIPTIONS (PWA) ====================
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
