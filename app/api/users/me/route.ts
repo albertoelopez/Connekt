@@ -85,9 +85,15 @@ export async function PATCH(request: Request) {
     const body = await request.json()
     const validatedData = updateProfileSchema.parse(body)
 
+    // Transform spiritualInterests array to JSON string for SQLite storage
+    const dataToSave: Record<string, unknown> = { ...validatedData }
+    if (validatedData.spiritualInterests) {
+      dataToSave.spiritualInterests = JSON.stringify(validatedData.spiritualInterests)
+    }
+
     const updatedUser = await db.user.update({
       where: { id: session.user.id },
-      data: validatedData,
+      data: dataToSave,
       select: {
         id: true,
         name: true,
@@ -107,7 +113,7 @@ export async function PATCH(request: Request) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: error.errors[0].message },
+        { error: error.issues[0].message },
         { status: 400 }
       )
     }

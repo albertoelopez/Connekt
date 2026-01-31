@@ -50,9 +50,10 @@ export function usePushNotifications() {
 
       // Subscribe to push
       const registration = await navigator.serviceWorker.ready
+      const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey)
       const sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
       })
 
       // Save subscription to server

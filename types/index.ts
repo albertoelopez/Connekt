@@ -17,8 +17,10 @@ export type ConversationWithParticipants = Conversation & {
 }
 
 export type MessageWithSender = Message & {
-  sender: User
-  replyTo?: Message | null
+  sender: Pick<User, 'id' | 'name' | 'image'>
+  replyTo?: (Message & {
+    sender: Pick<User, 'id' | 'name'>
+  }) | null
 }
 
 export type GroupWithMembers = Group & {

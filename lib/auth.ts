@@ -107,7 +107,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         })
       }
     },
-    async signOut({ token }) {
+    async signOut(message) {
+      // Handle sign out event - message can contain token or session
+      const token = 'token' in message ? message.token : null
       if (token?.id) {
         await db.user.update({
           where: { id: token.id as string },
@@ -133,7 +135,7 @@ declare module 'next-auth' {
   }
 }
 
-declare module 'next-auth/jwt' {
+declare module '@auth/core/jwt' {
   interface JWT {
     id: string
   }
