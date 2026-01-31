@@ -37,6 +37,7 @@ export default function MessagesPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const userIdParam = searchParams.get('userId')
+  const conversationIdParam = searchParams.get('conversationId')
 
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
@@ -45,6 +46,15 @@ export default function MessagesPage() {
   useEffect(() => {
     fetchConversations()
   }, [])
+
+  // Handle deep link to open a specific conversation
+  useEffect(() => {
+    if (conversationIdParam && !loading) {
+      setSelectedConversation(conversationIdParam)
+      // Clear the conversationId param from URL
+      router.replace('/messages')
+    }
+  }, [conversationIdParam, loading, router])
 
   // Handle deep link to start conversation with specific user
   useEffect(() => {

@@ -190,7 +190,7 @@ export async function POST(
             type: 'NEW_MESSAGE',
             title: 'New Message',
             body: `${session.user.name}: ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
-            link: `/messages/${conversationId}`,
+            link: `/messages?conversationId=${conversationId}`,
           },
         })
 
