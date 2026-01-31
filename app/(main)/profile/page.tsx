@@ -155,7 +155,7 @@ export default function ProfilePage() {
               <CardTitle>Spiritual Interests</CardTitle>
             </CardHeader>
             <CardContent>
-              {profile.spiritualInterests.length > 0 ? (
+              {profile.spiritualInterests && profile.spiritualInterests.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {profile.spiritualInterests.map((interest) => (
                     <Badge key={interest} variant="secondary">

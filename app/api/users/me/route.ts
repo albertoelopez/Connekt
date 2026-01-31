@@ -57,8 +57,19 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
+    // Parse spiritualInterests from JSON string (SQLite stores it as string)
+    let spiritualInterests: string[] = []
+    if (user.spiritualInterests) {
+      try {
+        spiritualInterests = JSON.parse(user.spiritualInterests)
+      } catch {
+        spiritualInterests = []
+      }
+    }
+
     return NextResponse.json({
       ...user,
+      spiritualInterests,
       connectionCount:
         user._count.sentConnections + user._count.receivedConnections,
       groupCount: user._count.groupMemberships,
