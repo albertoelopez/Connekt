@@ -12,6 +12,7 @@ import {
   UserCircle,
   UsersRound,
 } from 'lucide-react'
+import { useUnreadCounts } from '@/components/providers/unread-counts-provider'
 
 const navItems = [
   {
@@ -57,12 +58,14 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname()
+  const { totalUnread } = useUnreadCounts()
 
   return (
     <aside className={cn('w-64 border-r bg-background', className)}>
       <nav className="flex flex-col gap-1 p-4">
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+          const badge = item.href === '/messages' && totalUnread > 0 ? totalUnread : 0
           return (
             <Link
               key={item.href}
@@ -75,7 +78,17 @@ export function Sidebar({ className }: SidebarProps) {
               )}
             >
               <item.icon className="h-5 w-5" />
-              {item.title}
+              <span className="flex-1">{item.title}</span>
+              {badge > 0 && (
+                <span className={cn(
+                  'ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-bold',
+                  isActive
+                    ? 'bg-primary-foreground text-primary'
+                    : 'bg-destructive text-destructive-foreground'
+                )}>
+                  {badge > 99 ? '99+' : badge}
+                </span>
+              )}
             </Link>
           )
         })}

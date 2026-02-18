@@ -22,6 +22,17 @@ export function useConversation({
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const cleanupRef = useRef<(() => void)[]>([])
 
+  // Mark messages as read
+  const markAsRead = useCallback(async () => {
+    try {
+      await fetch(`/api/conversations/${conversationId}/read`, {
+        method: 'POST',
+      })
+    } catch {
+      // Silently fail for read receipts
+    }
+  }, [conversationId])
+
   // Fetch initial messages
   const fetchMessages = useCallback(async () => {
     try {
@@ -31,11 +42,13 @@ export function useConversation({
       const data = await response.json()
       if (response.ok) {
         setMessages(data.data || [])
+        // Mark messages as read when conversation is opened
+        markAsRead()
       }
     } catch (error) {
       console.error('Failed to fetch messages:', error)
     }
-  }, [conversationId])
+  }, [conversationId, markAsRead])
 
   // Handle new message
   const handleNewMessage = useCallback((data: unknown) => {
@@ -45,7 +58,9 @@ export function useConversation({
       if (prev.some((m) => m.id === message.id)) return prev
       return [...prev, message]
     })
-  }, [])
+    // Mark as read since user is viewing the conversation
+    markAsRead()
+  }, [markAsRead])
 
   // Handle typing indicator
   const handleTypingStart = useCallback(
@@ -132,6 +147,11 @@ export function useConversation({
         }
 
         const message = await response.json()
+        // Add the sent message to local state immediately (optimistic update)
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === message.id)) return prev
+          return [...prev, message]
+        })
         return message
       } catch (error) {
         console.error('Failed to send message:', error)
@@ -163,6 +183,7 @@ export function useConversation({
     isConnected,
     sendMessage,
     sendTypingIndicator,
+    markAsRead,
     refreshMessages: fetchMessages,
   }
 }

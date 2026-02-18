@@ -21,6 +21,7 @@ export type MessageWithSender = Message & {
   replyTo?: (Message & {
     sender: Pick<User, 'id' | 'name'>
   }) | null
+  readBy?: { userId: string; readAt: string }[]
 }
 
 export type GroupWithMembers = Group & {

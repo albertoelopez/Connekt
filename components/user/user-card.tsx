@@ -140,7 +140,7 @@ export function UserCard({ user, onConnectionChange }: UserCardProps) {
             </p>
           )}
 
-          {user.spiritualInterests.length > 0 && (
+          {user.spiritualInterests && Array.isArray(user.spiritualInterests) && user.spiritualInterests.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-3">
               {user.spiritualInterests.slice(0, 3).map((interest) => (
                 <Badge key={interest} variant="secondary" className="text-xs">

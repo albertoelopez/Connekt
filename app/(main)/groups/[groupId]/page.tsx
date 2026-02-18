@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { getInitials } from '@/lib/utils'
+import { ChatView } from '@/components/messaging/chat-view'
 import {
   Users,
   MapPin,
@@ -85,6 +86,8 @@ export default function GroupDetailPage({
   const [group, setGroup] = useState<GroupDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
+  const [chatConversationId, setChatConversationId] = useState<string | null>(null)
+  const [chatLoading, setChatLoading] = useState(false)
 
   useEffect(() => {
     fetchGroup()
@@ -102,6 +105,24 @@ export default function GroupDetailPage({
       console.error('Failed to fetch group:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleOpenChat = async () => {
+    if (chatConversationId || chatLoading) return
+    setChatLoading(true)
+    try {
+      const response = await fetch(`/api/groups/${params.groupId}/chat`, {
+        method: 'POST',
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setChatConversationId(data.conversationId)
+      }
+    } catch (error) {
+      console.error('Failed to load group chat:', error)
+    } finally {
+      setChatLoading(false)
     }
   }
 
@@ -292,14 +313,6 @@ export default function GroupDetailPage({
                 </div>
 
                 <div className="flex gap-2">
-                  {group.isMember && group.conversationId && (
-                    <Button variant="outline" asChild>
-                      <Link href={`/messages?conversationId=${group.conversationId}`}>
-                        <MessageCircle className="mr-2 h-4 w-4" />
-                        Group Chat
-                      </Link>
-                    </Button>
-                  )}
                   {!group.isMember && (
                     <Button onClick={handleJoin} disabled={actionLoading}>
                       {actionLoading ? (
@@ -367,11 +380,41 @@ export default function GroupDetailPage({
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="members">
+      <Tabs defaultValue="members" onValueChange={(value) => {
+        if (value === 'chat' && group.isMember) {
+          handleOpenChat()
+        }
+      }}>
         <TabsList>
+          {group.isMember && (
+            <TabsTrigger value="chat">
+              <MessageCircle className="mr-1.5 h-4 w-4" />
+              Chat
+            </TabsTrigger>
+          )}
           <TabsTrigger value="members">Members</TabsTrigger>
           <TabsTrigger value="about">About</TabsTrigger>
         </TabsList>
+
+        {group.isMember && (
+          <TabsContent value="chat" className="mt-6">
+            <Card className="overflow-hidden">
+              <CardContent className="p-0 h-[500px]">
+                {chatLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : chatConversationId ? (
+                  <ChatView conversationId={chatConversationId} />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <p>Loading chat...</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         <TabsContent value="members" className="mt-6">
           <Card>

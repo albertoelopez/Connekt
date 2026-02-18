@@ -55,6 +55,7 @@ model User {
   eventAttendees    EventAttendee[]
   notifications     Notification[]
   pushSubscriptions PushSubscription[]
+  messageReads      MessageRead[]
 }
 
 model Account {
@@ -191,6 +192,19 @@ model Message {
   sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
   replyTo      Message?     @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
   replies      Message[]    @relation("MessageReplies")
+  readBy       MessageRead[]
+}
+
+model MessageRead {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  readAt    DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
 }
 
 // ==================== PRAYER REQUESTS ====================

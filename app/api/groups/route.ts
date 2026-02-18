@@ -143,6 +143,11 @@ export async function POST(request: Request) {
         conversation: {
           create: {
             type: 'GROUP',
+            participants: {
+              create: {
+                userId: session.user.id,
+              },
+            },
           },
         },
       },

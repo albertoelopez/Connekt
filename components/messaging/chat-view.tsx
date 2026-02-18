@@ -9,8 +9,9 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getInitials, formatRelativeTime, cn } from '@/lib/utils'
-import { ArrowLeft, Send, Loader2 } from 'lucide-react'
+import { ArrowLeft, Send, Loader2, Check, CheckCheck } from 'lucide-react'
 import Link from 'next/link'
+import { useUnreadCounts } from '@/components/providers/unread-counts-provider'
 
 interface ChatViewProps {
   conversationId: string
@@ -39,6 +40,7 @@ export function ChatView({ conversationId, onBack }: ChatViewProps) {
   const { messages, isTyping, sendMessage, sendTypingIndicator } = useConversation({
     conversationId,
   })
+  const { refetch: refetchUnread } = useUnreadCounts()
 
   const [info, setInfo] = useState<ConversationInfo | null>(null)
   const [newMessage, setNewMessage] = useState('')
@@ -50,6 +52,9 @@ export function ChatView({ conversationId, onBack }: ChatViewProps) {
 
   useEffect(() => {
     fetchConversationInfo()
+    // Refetch unread counts when opening a conversation (messages get marked as read)
+    const timer = setTimeout(refetchUnread, 500)
+    return () => clearTimeout(timer)
   }, [conversationId])
 
   useEffect(() => {
@@ -220,16 +225,25 @@ export function ChatView({ conversationId, onBack }: ChatViewProps) {
                   <p className="text-sm whitespace-pre-wrap break-words">
                     {message.content}
                   </p>
-                  <p
+                  <div
                     className={cn(
-                      'text-xs mt-1',
+                      'flex items-center gap-1 mt-1',
                       isOwnMessage
-                        ? 'text-primary-foreground/70'
+                        ? 'text-primary-foreground/70 justify-end'
                         : 'text-muted-foreground'
                     )}
                   >
-                    {formatRelativeTime(message.createdAt)}
-                  </p>
+                    <span className="text-xs">
+                      {formatRelativeTime(message.createdAt)}
+                    </span>
+                    {isOwnMessage && (
+                      message.readBy && message.readBy.length > 0 ? (
+                        <CheckCheck className="h-3.5 w-3.5" />
+                      ) : (
+                        <Check className="h-3.5 w-3.5" />
+                      )
+                    )}
+                  </div>
                 </div>
               </div>
             )

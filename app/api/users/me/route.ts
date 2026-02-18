@@ -5,6 +5,7 @@ import { z } from 'zod'
 
 const updateProfileSchema = z.object({
   name: z.string().min(2).optional(),
+  image: z.string().nullable().optional(),
   bio: z.string().max(500).optional(),
   denomination: z.string().optional(),
   spiritualInterests: z.array(z.string()).optional(),

@@ -65,6 +65,12 @@ export async function GET(
             },
           },
         },
+        readBy: {
+          select: {
+            userId: true,
+            readAt: true,
+          },
+        },
       },
       orderBy: { createdAt: 'asc' },
       take: limit,
@@ -155,6 +161,12 @@ export async function POST(
                 name: true,
               },
             },
+          },
+        },
+        readBy: {
+          select: {
+            userId: true,
+            readAt: true,
           },
         },
       },

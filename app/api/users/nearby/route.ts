@@ -81,15 +81,28 @@ export async function GET(request: Request) {
 
     // Calculate actual distance and filter
     const usersWithDistance = users
-      .map((user) => ({
-        ...user,
-        distance: calculateDistance(
-          latitude,
-          longitude,
-          user.latitude!,
-          user.longitude!
-        ),
-      }))
+      .map((user) => {
+        // Parse spiritualInterests from JSON string (SQLite stores it as string)
+        let spiritualInterests: string[] = []
+        if (user.spiritualInterests) {
+          try {
+            spiritualInterests = JSON.parse(user.spiritualInterests)
+          } catch {
+            spiritualInterests = []
+          }
+        }
+
+        return {
+          ...user,
+          spiritualInterests,
+          distance: calculateDistance(
+            latitude,
+            longitude,
+            user.latitude!,
+            user.longitude!
+          ),
+        }
+      })
       .filter((user) => user.distance <= radius)
       .sort((a, b) => a.distance - b.distance)
 
